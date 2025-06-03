@@ -119,13 +119,13 @@ per_test AS (
   LEFT JOIN hubspot.main.owners ow
     ON ow.id = COALESCE(hsd.owner_id, hsd_name.owner_id)
 
-  /* keep only Jan-May 2025 */
+  /* keep only Jan-June 2025 */
   WHERE DATE_TRUNC('month', ord.ordered_at) BETWEEN DATE '2025-01-01'
-                                               AND     DATE '2025-05-01'
+                                               AND     DATE '2025-06-01'
 ),
 
 /* ───────────────────────────────────────────────
-   3) Pivot Jan–May totals per owner
+   3) Pivot Jan–June totals per owner
    ─────────────────────────────────────────────── */
 owner_totals AS (
   SELECT
@@ -135,7 +135,8 @@ owner_totals AS (
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-02-01') AS feb_2025,
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-03-01') AS mar_2025,
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-04-01') AS apr_2025,
-    SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-05-01') AS may_2025
+    SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-05-01') AS may_2025,
+    SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-06-01') AS june_2025
   FROM per_test
   GROUP BY owner_email
 )
