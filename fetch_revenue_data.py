@@ -53,97 +53,83 @@ except Exception as e:
     print("Error accessing platform.tests:", e)
 
 SQL_QUERY = """
-/* ───────────────────────────────────────────────
-   0) HubSpot companies → ONE row per domain,
-      preferring rows that already have an owner_id
-   ─────────────────────────────────────────────── */
 WITH hs_dedup AS (
-  SELECT *
+  SELECT
+    properties_domain,
+    properties_name,
+    properties_hubspot_owner_id AS owner_id
   FROM (
     SELECT
-      properties_domain                        AS domain,
-      properties_name                          AS hs_name,
-      properties_hubspot_owner_id              AS owner_id,
+      properties_domain,
+      properties_name,
+      properties_hubspot_owner_id,
       ROW_NUMBER() OVER (
         PARTITION BY properties_domain
         ORDER BY (properties_hubspot_owner_id IS NULL) ASC, id
       ) AS rn
     FROM hubspot.main.companies
     WHERE properties_domain IS NOT NULL
-  )
+  ) sub
   WHERE rn = 1
 ),
 
-/* ───────────────────────────────────────────────
-   1) Clean platform.companies.website to bare domain
-   ─────────────────────────────────────────────── */
-cleaned_companies AS (
-  SELECT
-    c.id    AS company_id,
-    LOWER(
-      REGEXP_REPLACE(
-        REGEXP_REPLACE(COALESCE(c.website, ''), '^https?://(www\\.)?', ''),
-        '/.*$',
-        ''
-      )
-    )       AS cleaned_domain,
-    c.name  AS company_name            -- used only in fallback
-  FROM platform.companies c
-),
-
-/* ───────────────────────────────────────────────
-   2) One row per TEST with owner e-mail (dedup logic)
-   ─────────────────────────────────────────────── */
 per_test AS (
   SELECT
-    ow.email                                   AS owner_email,
-    DATE_TRUNC('month', ord.ordered_at)        AS revenue_month,
-    tst.price
-      + COALESCE(tst.turnaround_fee_amount,0)
-      + COALESCE(tst.composite_fee_amount,0)   AS full_price
-  FROM platform.tests   AS tst
-  JOIN platform.samples AS smp ON smp.id = tst.sample_id
-  JOIN platform.orders  AS ord ON ord.id = smp.order_id
-  JOIN cleaned_companies   cc  ON cc.company_id = ord.company_id
+    ow.email                          AS owner_email,
+    cc.name                           AS company_name,
+    DATE_TRUNC(
+      'month',
+      COALESCE(ord.ordered_at, smp.created_at)
+    )                                  AS revenue_month,
+    (tst.price
+     + COALESCE(tst.turnaround_fee_amount, 0)
+     + COALESCE(tst.composite_fee_amount, 0)
+    )                                  AS full_price
+  FROM platform.tests     AS tst
+  JOIN platform.samples   AS smp ON smp.id     = tst.sample_id
+  JOIN platform.orders    AS ord ON ord.id     = smp.order_id
+  JOIN platform.companies AS cc  ON cc.id      = ord.company_id
 
-  /* primary domain match */
-  LEFT JOIN hs_dedup hsd
-    ON hsd.domain = cc.cleaned_domain
+  LEFT JOIN hs_dedup AS hsd
+    ON hsd.properties_domain = LOWER(
+         REGEXP_REPLACE(
+           REGEXP_REPLACE(COALESCE(cc.website, ''), '^https?://(www\\.)?', ''),
+           '/.*$',
+           ''
+         )
+       )
 
-  /* fallback name match (only if primary row has no owner) */
-  LEFT JOIN hs_dedup hsd_name
+  LEFT JOIN hs_dedup AS hsd2
     ON hsd.owner_id IS NULL
-   AND LOWER(hsd_name.hs_name) = LOWER(cc.company_name)
+   AND LOWER(hsd2.properties_name) = LOWER(cc.name)
 
-  /* owners table for e-mail */
-  LEFT JOIN hubspot.main.owners ow
-    ON ow.id = COALESCE(hsd.owner_id, hsd_name.owner_id)
+  LEFT JOIN hubspot.main.owners AS ow
+    ON ow.id = COALESCE(hsd.owner_id, hsd2.owner_id)
 
-  /* keep only Jan-June 2025 */
-  WHERE DATE_TRUNC('month', ord.ordered_at) BETWEEN DATE '2025-01-01'
-                                               AND     DATE '2025-06-01'
+  WHERE DATE_TRUNC(
+          'month',
+          COALESCE(ord.ordered_at, smp.created_at)
+        ) BETWEEN DATE '2025-01-01' AND DATE '2025-06-01'
+    AND ord.status NOT IN (0, 3)
 ),
 
-/* ───────────────────────────────────────────────
-   3) Pivot Jan–June totals per owner
-   ─────────────────────────────────────────────── */
-owner_totals AS (
+owner_company_totals AS (
   SELECT
-    COALESCE(owner_email, '(no owner)')           AS owner_email,
-
+    COALESCE(owner_email, '(no owner)')          AS owner_email,
+    -- company_name,
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-01-01') AS jan_2025,
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-02-01') AS feb_2025,
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-03-01') AS mar_2025,
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-04-01') AS apr_2025,
     SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-05-01') AS may_2025,
-    SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-06-01') AS june_2025
+    SUM(full_price) FILTER (WHERE revenue_month = DATE '2025-06-01') AS jun_2025
   FROM per_test
-  GROUP BY owner_email
+  GROUP BY owner_email--, company_name
 )
 
 SELECT *
-FROM   owner_totals
-ORDER  BY owner_email;
+FROM owner_company_totals
+ORDER BY owner_email--, company_name;
 """
 
 # Run the query and fetch results
