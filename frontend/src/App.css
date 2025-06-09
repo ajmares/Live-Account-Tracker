@@ -1,0 +1,134 @@
+.App {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #fafbfc;
+  min-height: 100vh;
+  padding: 32px 0;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 24px;
+  color: #222;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(340px, 1fr));
+  gap: 40px 40px;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto 32px auto;
+}
+
+.ae-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+  padding: 32px 28px 28px 28px;
+  min-width: 340px;
+  max-width: 420px;
+  flex: 1 1 340px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  font-size: 1.08em;
+}
+
+.ae-name {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #3a3a8a;
+  margin-bottom: 8px;
+}
+
+.ae-past-revenue {
+  font-size: 0.98em;
+  margin-bottom: 10px;
+}
+.ae-past-revenue ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.ae-past-revenue li {
+  margin-bottom: 2px;
+}
+
+.ae-current {
+  margin-bottom: 12px;
+  font-size: 0.98em;
+}
+.goal-input {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 1em;
+  width: 80px;
+  margin-left: 2px;
+}
+.progress-bar-bg {
+  background: #eee;
+  border-radius: 6px;
+  height: 28px;
+  margin-top: 6px;
+  width: 100%;
+  overflow: hidden;
+}
+.progress-bar {
+  background: linear-gradient(90deg, #8884d8 60%, #a0b4f8 100%);
+  height: 100%;
+  border-radius: 6px 0 0 6px;
+  transition: width 0.4s;
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #fff;
+  padding-left: 10px;
+}
+.ae-chart {
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    max-width: 95vw;
+  }
+  .ae-card {
+    max-width: 95vw;
+    min-width: 0;
+  }
+}
+
+.card-grid:has(.ae-card:only-child) {
+  justify-items: center;
+}
+
+.team-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+  padding: 32px 28px 28px 28px;
+  margin: 0 auto 40px auto;
+  max-width: 860px;
+  min-width: 340px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 1.15em;
+}
+
+.top-performer-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fffbe6;
+  border: 2px solid #ffe066;
+  border-radius: 14px;
+  padding: 18px 32px;
+  margin: 0 auto 28px auto;
+  max-width: 600px;
+  font-size: 1.1em;
+  box-shadow: 0 2px 8px rgba(255, 224, 102, 0.12);
+}
