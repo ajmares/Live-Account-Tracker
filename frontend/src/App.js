@@ -7,6 +7,25 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 function fetchRevenueData() {
   return fetch(`${BACKEND_URL}/revenue`).then(res => res.json()).then(res => res.data);
 }
+
+async function triggerUpdate() {
+  try {
+    const response = await fetch(`${BACKEND_URL}/trigger-update`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+    if (data.status === 'success') {
+      // Refresh the data after successful update
+      const newData = await fetchRevenueData();
+      return newData;
+    } else {
+      alert('Failed to update data: ' + data.message);
+    }
+  } catch (error) {
+    alert('Failed to update data: ' + error.message);
+  }
+}
+
 function fetchLastUpdated() {
   return fetch(`${BACKEND_URL}/last_updated.txt`).then(res => res.text());
 }
@@ -47,6 +66,7 @@ function App() {
   const [data, setData] = useState([]);
   const [lastUpdated, setLastUpdated] = useState('');
   const [goals, setGoals] = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     fetchRevenueData().then(setData);
@@ -127,7 +147,28 @@ function App() {
         </div>
       )}
       <h2>AE Revenue Live Tracker</h2>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>Last updated: {lastUpdated && new Date(lastUpdated).toLocaleString()}</div>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+        <div style={{ fontSize: 12, color: '#888' }}>Last updated: {lastUpdated && new Date(lastUpdated).toLocaleString()}</div>
+        <button 
+          onClick={async () => {
+            setIsUpdating(true);
+            await triggerUpdate();
+            setIsUpdating(false);
+          }}
+          disabled={isUpdating}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#3a3a8a',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isUpdating ? 'not-allowed' : 'pointer',
+            opacity: isUpdating ? 0.7 : 1
+          }}
+        >
+          {isUpdating ? 'Updating...' : '🔄 Update Data'}
+        </button>
+      </div>
       <div className="team-card">
         <div className="ae-name" style={{ fontSize: '1.4em', marginBottom: 8 }}>Team</div>
         <div style={{ marginBottom: 8 }}>
