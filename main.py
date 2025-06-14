@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import json
 import os
 import subprocess
+import logging
 
 app = FastAPI()
 
@@ -37,9 +39,11 @@ def get_last_updated():
 
 @app.post("/trigger-update")
 def trigger_update():
+    logging.warning("/trigger-update endpoint was called")
     try:
-        # Run the fetch_revenue_data.py script
-        subprocess.run(["python3", "fetch_revenue_data.py"], check=True)
-        return {"status": "success", "message": "Data updated successfully"}
+        result = subprocess.run(["python3", "fetch_revenue_data.py"], check=True, capture_output=True, text=True)
+        return JSONResponse(content={"status": "success", "message": "Data updated successfully", "output": result.stdout})
+    except subprocess.CalledProcessError as e:
+        return JSONResponse(content={"status": "error", "message": str(e), "output": e.output}, status_code=500)
     except Exception as e:
-        return {"status": "error", "message": str(e)} 
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500) 
