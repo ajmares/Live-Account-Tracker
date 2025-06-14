@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
+import subprocess
 
 app = FastAPI()
 
@@ -32,4 +33,13 @@ def get_last_updated():
             ts = f.read().strip()
         return {"last_updated": ts}
     except Exception as e:
-        return {"error": str(e)} 
+        return {"error": str(e)}
+
+@app.post("/trigger-update")
+def trigger_update():
+    try:
+        # Run the fetch_revenue_data.py script
+        subprocess.run(["python3", "fetch_revenue_data.py"], check=True)
+        return {"status": "success", "message": "Data updated successfully"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)} 
