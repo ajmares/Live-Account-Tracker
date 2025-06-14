@@ -52,7 +52,7 @@ try:
 except Exception as e:
     print("Error accessing platform.tests:", e)
 
-SQL_QUERY = """
+SQL_QUERY = '''
 WITH hs_dedup AS (
   SELECT
     properties_domain,
@@ -130,7 +130,7 @@ owner_company_totals AS (
 SELECT *
 FROM owner_company_totals
 ORDER BY owner_email--, company_name;
-"""
+'''
 
 # Run the query and fetch results
 df = conn.execute(SQL_QUERY).fetchdf()
