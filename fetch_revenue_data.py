@@ -3,16 +3,22 @@ import duckdb
 import json
 from dotenv import load_dotenv
 from datetime import datetime
+import sys
+
+print("[fetch_revenue_data.py] Script started.")
 
 # Load environment variables from .env if present
 load_dotenv()
 
 MOTHERDUCK_TOKEN = os.getenv('MOTHERDUCK_TOKEN')
 if not MOTHERDUCK_TOKEN:
-    raise ValueError("Mother Duck API token not found. Set MOTHERDUCK_TOKEN as an environment variable.")
+    print("[fetch_revenue_data.py] ERROR: Mother Duck API token not found. Set MOTHERDUCK_TOKEN as an environment variable.")
+    sys.exit(1)
 
 # Connection string for Mother Duck (connect directly to md:my_db)
+print(f"[fetch_revenue_data.py] Connecting to MotherDuck with token: {MOTHERDUCK_TOKEN[:6]}... (truncated)")
 conn = duckdb.connect(f"md:my_db?motherduck_token={MOTHERDUCK_TOKEN}")
+print("[fetch_revenue_data.py] Connected to MotherDuck.")
 
 # Test: List all tables in the main schema
 print("Listing tables in 'main' schema:")
@@ -132,15 +138,16 @@ FROM owner_company_totals
 ORDER BY owner_email--, company_name;
 '''
 
-# Run the query and fetch results
+print("[fetch_revenue_data.py] Running SQL query...")
 df = conn.execute(SQL_QUERY).fetchdf()
+print(f"[fetch_revenue_data.py] Query returned {len(df)} rows.")
 
 # Save to JSON
-output_path = "revenue_data.json"
+output_path = os.path.abspath("revenue_data.json")
 df.to_json(output_path, orient="records")
-print(f"Saved revenue data to {output_path}")
+print(f"[fetch_revenue_data.py] Saved revenue data to {output_path}")
 
 # Write last updated timestamp
 with open("last_updated.txt", "w") as f:
     f.write(datetime.now().isoformat())
-print("Updated last_updated.txt with current timestamp.") 
+print("[fetch_revenue_data.py] Updated last_updated.txt with current timestamp.") 
